@@ -2,7 +2,6 @@ services:
 
   backend:
     build: ./backend
-    container_name: url-shortener-backend
 
     ports:
       - "5000:5000"
@@ -28,8 +27,6 @@ services:
   mysql:
     image: mysql:8
 
-    container_name: mysql-db
-
     restart: always
 
     environment:
@@ -46,8 +43,6 @@ services:
 
   redis:
     image: redis:latest
-
-    container_name: redis-cache
 
     ports:
       - "6379:6379"
