@@ -1,0 +1,56 @@
+services:
+
+  backend:
+    build: ./backend
+    container_name: url-shortener-backend
+
+    ports:
+      - "5000:5000"
+
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+    depends_on:
+      - mysql
+      - redis
+
+    environment:
+      - PORT=5000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=devuser
+      - DB_PASSWORD=1234
+      - DB_NAME=url_shortener
+      - REDIS_URL=redis://redis:6379
+      - BASE_URL=http://localhost:5000
+
+  mysql:
+    image: mysql:8
+
+    container_name: mysql-db
+
+    restart: always
+
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: url_shortener
+      MYSQL_USER: devuser
+      MYSQL_PASSWORD: 1234
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:latest
+
+    container_name: redis-cache
+
+    ports:
+      - "6379:6379"
+
+volumes:
+  mysql_data:
