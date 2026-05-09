@@ -5,7 +5,7 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git 'YOUR_GITHUB_REPO_URL'
+                git 'https://github.com/AkshitPrashar14/Scalable_URL_Shortener.git'
             }
         }
 
