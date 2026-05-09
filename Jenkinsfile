@@ -3,12 +3,6 @@ pipeline {
 
     stages {
 
-        stage('Clone Repository') {
-            steps {
-                git 'https://github.com/AkshitPrashar14/Scalable_URL_Shortener.git'
-            }
-        }
-
         stage('Build Docker Containers') {
             steps {
                 bat 'docker compose build'
