@@ -41,5 +41,14 @@ services:
   redis:
     image: redis:latest
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    depends_on:
+      - backend
+
 volumes:
   mysql_data:

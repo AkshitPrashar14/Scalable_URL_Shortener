@@ -1,0 +1,100 @@
+pipeline {
+    agent any
+
+    environment {
+        // Configurable Environment Variables for Images
+        BACKEND_IMAGE = 'url-shortener-backend:latest'
+        FRONTEND_IMAGE = 'url-shortener-frontend:latest'
+        K8S_DIR = 'kubernetes/'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                echo 'Cloning repository...'
+                // Automatically pulls the code from the configured Git repository in Jenkins
+                checkout scm
+            }
+        }
+
+        stage('Build Backend Image') {
+            steps {
+                echo 'Building Node.js Backend Docker Image...'
+                bat "docker build -t ${BACKEND_IMAGE} ./backend"
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                echo 'Building React/Vite Frontend Docker Image...'
+                bat "docker build -t ${FRONTEND_IMAGE} ./frontend"
+            }
+        }
+
+        stage('Load Images into Minikube') {
+            steps {
+                // We use 'minikube image load' to securely push the locally built images 
+                // directly into Minikube's isolated Docker registry.
+                echo 'Loading images into Minikube cluster...'
+                bat "minikube image load ${BACKEND_IMAGE}"
+                bat "minikube image load ${FRONTEND_IMAGE}"
+            }
+        }
+
+        stage('Deploy Stateful Services (Databases)') {
+            steps {
+                echo 'Applying MySQL and Redis Kubernetes configurations...'
+                bat "kubectl apply -f ${K8S_DIR}mysql-deployment.yaml"
+                bat "kubectl apply -f ${K8S_DIR}mysql-service.yaml"
+                bat "kubectl apply -f ${K8S_DIR}redis-deployment.yaml"
+                bat "kubectl apply -f ${K8S_DIR}redis-service.yaml"
+                
+                // Allow databases a few seconds to initialize before the backend tries to connect
+                sleep time: 15, unit: 'SECONDS'
+            }
+        }
+
+        stage('Deploy Applications (Backend & Frontend)') {
+            steps {
+                echo 'Applying Backend and Frontend Kubernetes configurations...'
+                bat "kubectl apply -f ${K8S_DIR}backend-deployment.yaml"
+                bat "kubectl apply -f ${K8S_DIR}backend-service.yaml"
+                bat "kubectl apply -f ${K8S_DIR}frontend-deployment.yaml"
+                bat "kubectl apply -f ${K8S_DIR}frontend-service.yaml"
+            }
+        }
+
+        stage('Deploy Monitoring Stack') {
+            steps {
+                echo 'Applying Prometheus ServiceMonitor...'
+                bat "kubectl apply -f ${K8S_DIR}backend-monitor.yaml"
+            }
+        }
+
+        stage('Rollout & Verify Deployment') {
+            steps {
+                echo 'Triggering rollout restart to forcefully wipe stale pods and use the new images...'
+                bat 'kubectl rollout restart deployment backend-deployment'
+                bat 'kubectl rollout restart deployment frontend-deployment'
+                
+                echo 'Waiting for pods to be fully ready...'
+                bat 'kubectl rollout status deployment/backend-deployment --timeout=90s'
+                bat 'kubectl rollout status deployment/frontend-deployment --timeout=90s'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Deployment to Minikube Successful! Your application is live.'
+        }
+        failure {
+            echo '❌ Kubernetes Pipeline Failed! Please check the Jenkins console output.'
+        }
+        always {
+            echo 'Fetching current cluster status...'
+            bat 'kubectl get pods'
+            bat 'kubectl get svc'
+        }
+    }
+}

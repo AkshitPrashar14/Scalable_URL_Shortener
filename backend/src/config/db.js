@@ -12,4 +12,24 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
 });
 
+const initDb = async () => {
+  try {
+    const connection = await pool.getConnection();
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS urls (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        short_code VARCHAR(255) NOT NULL UNIQUE,
+        original_url TEXT NOT NULL,
+        clicks INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    connection.release();
+    console.log("MySQL Database Initialized ✅");
+  } catch (error) {
+    console.log("Database Init Error:", error);
+  }
+};
+initDb();
+
 module.exports = pool;
