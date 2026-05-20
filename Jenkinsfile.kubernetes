@@ -6,6 +6,10 @@ pipeline {
         BACKEND_IMAGE = 'url-shortener-backend:latest'
         FRONTEND_IMAGE = 'url-shortener-frontend:latest'
         K8S_DIR = 'kubernetes/'
+        
+        // Fix for Jenkins running as Windows Local System: Point to the user's config
+        KUBECONFIG = 'C:\\Users\\HP\\.kube\\config'
+        MINIKUBE_HOME = 'C:\\Users\\HP'
     }
 
     stages {
